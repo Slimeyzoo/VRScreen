@@ -1,8 +1,13 @@
+
+---
+
+### ✅ `index.html` (Updated and Translated)
+```html
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>VR Bildschirmfreigabe mit WebRTC (PeerJS)</title>
+  <title>VRScreen – Screen Sharing in VR (WebRTC + PeerJS)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -45,24 +50,24 @@
 <body>
   <div id="ui">
     <div>
-      <strong>Meine Peer-ID:</strong> <span id="myId">(lade...)</span>
+      <strong>My Peer ID:</strong> <span id="myId">(loading...)</span>
     </div>
 
-    <label for="remoteIdInput">Peer-ID des Empfängers eingeben:</label>
-    <input type="text" id="remoteIdInput" placeholder="Peer-ID hier eingeben" />
+    <label for="remoteIdInput">Enter receiver's Peer ID:</label>
+    <input type="text" id="remoteIdInput" placeholder="Enter Peer ID here" />
 
-    <button id="startShareBtn">Bildschirm teilen & senden</button>
-    <button id="startReceiveBtn">Stream empfangen</button>
+    <button id="startShareBtn">Share Screen & Send</button>
+    <button id="startReceiveBtn">Receive Stream</button>
 
     <hr>
 
-    <label>Breite:
+    <label>Width:
       <input type="range" id="widthSlider" min="1" max="10" step="0.1" value="4" />
     </label>
-    <label>Höhe:
+    <label>Height:
       <input type="range" id="heightSlider" min="0.5" max="6" step="0.1" value="2.25" />
     </label>
-    <label>Entfernung:
+    <label>Distance:
       <input type="range" id="depthSlider" min="-10" max="-0.5" step="0.1" value="-2" />
     </label>
   </div>
@@ -72,14 +77,14 @@
       <video id="screenVideo" autoplay playsinline crossorigin="anonymous" webkit-playsinline></video>
     </a-assets>
 
-    <!-- Umgebung -->
+    <!-- Environment -->
     <a-sky color="#222"></a-sky>
     <a-plane color="#444" rotation="-90 0 0" width="30" height="30"></a-plane>
 
-    <!-- Bildschirm -->
+    <!-- Virtual Screen -->
     <a-video id="screenInVR" src="#screenVideo" position="0 1.6 -2" width="4" height="2.25" ></a-video>
 
-    <!-- Kamera -->
+    <!-- Camera -->
     <a-entity camera look-controls wasd-controls position="0 1.6 0"></a-entity>
   </a-scene>
 
@@ -95,8 +100,7 @@
   const heightSlider = document.getElementById('heightSlider');
   const depthSlider = document.getElementById('depthSlider');
 
-  // PeerJS Setup
-  const peer = new Peer(); // Automatisch Peer-ID vergeben und Signalisierungsserver nutzen
+  const peer = new Peer();
   let currentCall = null;
 
   peer.on('open', id => {
@@ -104,28 +108,25 @@
   });
 
   peer.on('error', err => {
-    alert('PeerJS Fehler: ' + err);
+    alert('PeerJS error: ' + err);
   });
 
-  // Incoming call annehmen (Empfänger-Seite)
   peer.on('call', call => {
     if (currentCall) {
       currentCall.close();
     }
     currentCall = call;
-    call.answer(); // Ohne eigenen Stream antworten (kein Kamera/Mikrofon)
+    call.answer();
     call.on('stream', remoteStream => {
-      // Stream im Video anzeigen & in VR Screen setzen
       videoEl.srcObject = remoteStream;
       videoEl.play();
     });
   });
 
-  // Bildschirm teilen und an remote Peer senden (Sender-Seite)
   startShareBtn.onclick = async () => {
     const remoteId = remoteIdInput.value.trim();
     if (!remoteId) {
-      alert('Bitte Peer-ID des Empfängers eingeben!');
+      alert('Please enter the receiver\'s Peer ID!');
       return;
     }
     try {
@@ -133,28 +134,22 @@
       videoEl.srcObject = stream;
       videoEl.play();
 
-      if (currentCall) {
-        currentCall.close();
-      }
+      if (currentCall) currentCall.close();
       currentCall = peer.call(remoteId, stream);
       currentCall.on('close', () => {
-        alert('Verbindung beendet.');
+        alert('Connection closed.');
         videoEl.srcObject = null;
       });
-      currentCall.on('error', err => alert('Call Fehler: ' + err));
-
+      currentCall.on('error', err => alert('Call error: ' + err));
     } catch (err) {
-      alert('Fehler beim Bildschirmzugriff: ' + err);
+      alert('Screen capture error: ' + err);
     }
   };
 
-  // Stream empfangen ohne selbst zu senden
   startReceiveBtn.onclick = () => {
-    alert('Warte auf eingehende Bildschirmübertragung...');
-    // Die Logik zum Empfangen ist bereits im peer.on('call') Event oben
+    alert('Waiting for an incoming screen stream...');
   };
 
-  // UI Slider zur Steuerung des VR-Bildschirmes
   widthSlider.oninput = e => {
     screenInVR.setAttribute('width', e.target.value);
   };
