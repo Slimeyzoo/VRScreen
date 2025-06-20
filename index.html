@@ -30,8 +30,9 @@
       margin-top: 8px;
       padding: 6px 12px;
       font-size: 1em;
+      margin-right: 6px;
     }
-    input[type=text] {
+    input[type=text], select {
       width: 100%;
       padding: 4px;
       margin-top: 4px;
@@ -39,6 +40,11 @@
       box-sizing: border-box;
       border-radius: 4px;
       border: none;
+      background: #333;
+      color: white;
+    }
+    select {
+      cursor: pointer;
     }
   </style>
 </head>
@@ -50,6 +56,14 @@
 
     <label for="remoteIdInput">Enter receiver's Peer ID:</label>
     <input type="text" id="remoteIdInput" placeholder="Enter Peer ID here" />
+
+    <button id="saveFavoriteBtn">Zu Favoriten hinzufügen</button>
+
+    <label for="favoritesSelect">Favoriten:</label>
+    <select id="favoritesSelect">
+      <option value="">-- Favorit wählen --</option>
+    </select>
+    <button id="removeFavoriteBtn">Favoriten löschen</button>
 
     <button id="startShareBtn">Share Screen & Send</button>
     <button id="startReceiveBtn">Receive Stream</button>
@@ -95,7 +109,23 @@
   const heightSlider = document.getElementById('heightSlider');
   const depthSlider = document.getElementById('depthSlider');
 
-  const peer = new Peer();
+  const saveFavoriteBtn = document.getElementById('saveFavoriteBtn');
+  const favoritesSelect = document.getElementById('favoritesSelect');
+  const removeFavoriteBtn = document.getElementById('removeFavoriteBtn');
+
+  // Gerätegebundene Peer-ID in localStorage speichern und wiederverwenden
+  function getOrCreatePeerId() {
+    let id = localStorage.getItem('peerId');
+    if (!id) {
+      id = 'peer-' + Math.random().toString(36).substring(2, 10); // einfache zufällige ID
+      localStorage.setItem('peerId', id);
+    }
+    return id;
+  }
+
+  const myPeerId = getOrCreatePeerId();
+  const peer = new Peer(myPeerId);
+
   let currentCall = null;
 
   peer.on('open', id => {
@@ -117,6 +147,75 @@
       videoEl.play();
     });
   });
+
+  // Favoriten aus localStorage laden
+  function loadFavorites() {
+    const stored = localStorage.getItem('favoritePeerIds');
+    return stored ? JSON.parse(stored) : [];
+  }
+
+  // Favoriten speichern
+  function saveFavorites(favorites) {
+    localStorage.setItem('favoritePeerIds', JSON.stringify(favorites));
+  }
+
+  // Dropdown aktualisieren
+  function updateFavoritesDropdown() {
+    favoritesSelect.innerHTML = '<option value="">-- Favorit wählen --</option>';
+    loadFavorites().forEach(id => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = id;
+      favoritesSelect.appendChild(option);
+    });
+  }
+
+  // Button: Peer-ID zu Favoriten hinzufügen
+  saveFavoriteBtn.onclick = () => {
+    const id = remoteIdInput.value.trim();
+    if (!id) {
+      alert('Bitte zuerst eine Peer-ID eingeben!');
+      return;
+    }
+
+    const favorites = loadFavorites();
+    if (!favorites.includes(id)) {
+      favorites.push(id);
+      saveFavorites(favorites);
+      updateFavoritesDropdown();
+      alert('Peer-ID gespeichert.');
+    } else {
+      alert('Diese Peer-ID ist bereits in der Favoritenliste.');
+    }
+  };
+
+  // Auswahl aus Dropdown → ins Eingabefeld übernehmen
+  favoritesSelect.onchange = () => {
+    if (favoritesSelect.value) {
+      remoteIdInput.value = favoritesSelect.value;
+    }
+  };
+
+  // Favoriten löschen Button
+  removeFavoriteBtn.onclick = () => {
+    const selected = favoritesSelect.value;
+    if (!selected) {
+      alert('Bitte zuerst einen Favoriten auswählen, um ihn zu löschen.');
+      return;
+    }
+
+    let favorites = loadFavorites();
+    favorites = favorites.filter(id => id !== selected);
+    saveFavorites(favorites);
+    updateFavoritesDropdown();
+
+    // Wenn der gelöschte Favorit gerade im Eingabefeld steht, leeren wir das Feld
+    if (remoteIdInput.value === selected) {
+      remoteIdInput.value = '';
+    }
+
+    alert('Favorit gelöscht.');
+  };
 
   startShareBtn.onclick = async () => {
     const remoteId = remoteIdInput.value.trim();
@@ -155,6 +254,10 @@
     const pos = screenInVR.getAttribute('position');
     screenInVR.setAttribute('position', `${pos.x} ${pos.y} ${e.target.value}`);
   };
+
+  // Initiale Dropdown-Befüllung beim Start
+  updateFavoritesDropdown();
+
 </script>
 </body>
 </html>
